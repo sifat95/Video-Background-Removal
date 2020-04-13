@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8"/>
+    <!-- <link rel="stylesheet" type="text/css" href="styles.css"/> -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.0.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/deeplab"></script>
+  </head>
+
+  <body>
+    <video id="video" width="513" height="289" autoplay muted playsinline></video>
+    <canvas id="canvas" width="513" height="289"></canvas>
+    <!-- <canvas id="output" width="800" height="450"></canvas> -->
+    
+    <script>
+      (async () => {
+        const video = document.getElementById('video')
+        const canvas = document.getElementById('canvas')
+        const context = canvas.getContext('2d')
+        
+        // const output = document.getElementById('output')
+        // const contextOut = output.getContext('2d')
+
+        const modelName = 'pascal';   // set to your preferred model, either `pascal`, `cityscapes` or `ade20k`
+        const quantizationBytes = 2;
+        const model = await deeplab.load({base: modelName, quantizationBytes})
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: 'user'
+          }
+        })
+
+        video.srcObject = stream
+        predict()
+
+        async function predict() {
+          // context.drawImage(video, 0, 0, 800, 450)
+          const base = 'pascal'
+          const rawSegmentationMap = await model.predict(video)
+          const {legend, height, width, segmentationMap} = await model.segment(video)
+          console.log(width)
+          // const segmentationMap = deeplab.toSegmentationImage(deeplab.getColormap(base), deeplab.getLabels(base), rawSegmentationMap)
+          
+          var myImageData = new ImageData(segmentationMap, width, height);
+          // contextOut.getImageData(0, 0, width, height);
+          context.putImageData(myImageData, 0, 0);
+
+          requestAnimationFrame(predict)
+        }
+
+      })()
+
+    </script>
+</body>
+ 
+</html>
