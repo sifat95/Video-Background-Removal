@@ -1,33 +1,57 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <style>
-      body {
-        background: black;
-        color:#CCCCCC; 
-      }
-      #c2 {
-        background-image: url(media/bg.jpg);
-        background-repeat: no-repeat;
-      }
-      div {
-        float: left;
-        border :1px solid #444444;
-        padding:10px;
-        margin: 10px;
-        background:#3B3B3B;
-      }
-    </style>
+    <meta charset="UTF-8"/>
+    <link rel="stylesheet" type="text/css" href="styles.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.0.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/deeplab"></script>
   </head>
 
   <body>
-    <div>
-      <video id="video" src="media/original.mp4" controls="true" crossorigin="anonymous"/>
+    <video id="video" width="513" height="289" autoplay muted playsinline></video>
+    <canvas id="canvas" width="513" height="289" style="display: none;"></canvas>
+    <div id="background-container">
+      <canvas id="canvasOut" width="513" height="289"></canvas>
     </div>
-    <div>
-      <canvas id="c1" width="400" height="280"></canvas>
-      <canvas id="c2" width="400" height="280"></canvas>
-    </div>
-  <script type="text/javascript" src="processor.js"></script>
-  </body>
+    <script>
+      (async () => {
+        const video = document.getElementById('video')
+        const canvas = document.getElementById('canvas')
+        const context = canvas.getContext('2d')
+        
+        const canvasOut = document.getElementById('canvasOut')
+        const contextOut = canvasOut.getContext('2d')
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: 'user'
+          }
+        })
+
+        video.srcObject = stream
+        chromaKeying()
+
+        async function chromaKeying() {
+          context.drawImage(video, 0, 0, 513, 289)
+          contextOut.drawImage(canvas, 0, 0, canvas.width, canvas.height)
+          const frame = contextOut.getImageData(0, 0, canvas.width, canvas.height)
+          const l = frame.data.length / 4;
+          for (var i = 0; i < l; i++) {
+            const r = frame.data[i * 4 + 0];
+            const g = frame.data[i * 4 + 1];
+            const b = frame.data[i * 4 + 2];
+            if (g > 35 && r <60 && b < 195)
+                frame.data[i * 4 + 3] = 0;
+          }
+          contextOut.putImageData(frame, 0, 0)
+
+          requestAnimationFrame(chromaKeying)
+        }
+
+      })()
+
+    </script>
+</body>
+ 
 </html>
