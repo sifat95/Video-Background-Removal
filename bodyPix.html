@@ -1,34 +1,81 @@
-<html>
-  <head>
-    <!-- Load TensorFlow.js -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.2"></script>
-    <!-- Load BodyPix -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix@2.0"></script>
- </head>
+ <!DOCTYPE html>
+ <html>
+   <head>
+     <meta charset="UTF-8"/>
+     <link rel="stylesheet" type="text/css" href="styles.css"/>
+     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.2"></script>
+     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix@2.0"></script>
+   </head>
+ 
+   <body>
+     <video id="video" width="513" height="288" autoplay muted playsinline></video>
+     <canvas id="canvas" width="513" height="288" style="display: none;"></canvas>
+     <div id="background-container">
+        <canvas id="canvasPerson" width="513" height="288"></canvas>
+     </div>
+     <script>
+       (async () => {
+         const video = document.getElementById('video')
+         const canvas = document.getElementById('canvas')
+         const context = canvas.getContext('2d')
+         
+         const canvasPerson = document.getElementById('canvasPerson')
+         const contextPerson = canvasPerson.getContext('2d')
+ 
+         const model = await bodyPix.load({
+                                architecture: 'MobileNetV1',
+                                outputStride: 16,
+                                multiplier: .75,
+                                quantBytes: 2
+                              })
+         const stream = await navigator.mediaDevices.getUserMedia({
+           audio: false,
+           video: {
+             facingMode: 'user'
+           }
+         })
+ 
+         video.srcObject = stream
+         predict()
+ 
+         async function predict() {
+           
+            context.drawImage(video, 0, 0, video.width, video.height)
+           
+            const segmentation = await model.segmentPerson(canvas)
+            const maskBackground = true
+            // Convert the segmentation into a mask to darken the background.
+            const foregroundColor = {r: 0, g: 0, b: 0, a: 0}
+            const backgroundColor = {r: 0, g: 0, b: 0, a: 255}
+            const backgroundDarkeningMask = bodyPix.toMask(
+                segmentation, foregroundColor, backgroundColor)
 
-  <body>
-    <img id='image' src='image/2.png' crossorigin='anonymous'/>
-    <canvas id="output"></canvas>
-  </body>
-  <!-- Place your code in the script tag below. You can also use an external .js file -->
-  <script>
-    const img = document.getElementById('image');
+            // const opacity = .3
+            // const maskBlurAmount = 3
+            // const flipHorizontal = false
 
-    async function loadAndPredict() {
-      const net = await bodyPix.load(/** optional arguments, see below **/);
-
-      /**
-       * One of (see documentation below):
-       *   - net.segmentPerson
-       *   - net.segmentPersonParts
-       *   - net.segmentMultiPerson
-       *   - net.segmentMultiPersonParts
-       * See documentation below for details on each method.
-       */
-      const segmentation = await net.segmentPerson(img);
-      const ctx = document.getElementById("canvas").getContext("2d");    
-      ctx.drawImage(i, 0, 0, ctx.canvas.width, ctx.canvas.height);
-    }
-    loadAndPredict();
-  </script>
-</html>
+            contextPerson.drawImage(canvas, 0, 0, canvas.width, canvas.height)
+            var imageData = contextPerson.getImageData(0,0, canvas.width, canvas.height)
+            var pixel = imageData.data
+            for (var p = 0; p<pixel.length; p+=4)
+            {
+              if (segmentation.data[p/4] == 0) {
+                  pixel[p+3] = 0
+              }
+            }
+            contextPerson.imageSmoothingEnabled = true
+            contextPerson.putImageData(imageData, 0, 0)
+           
+            
+            // bodyPix.drawMask(
+                // canvasPerson, canvas, backgroundDarkeningMask, opacity, maskBlurAmount, flipHorizontal);
+            
+            requestAnimationFrame(predict)
+         }
+ 
+       })()
+ 
+     </script>
+ </body>
+  
+ </html>
