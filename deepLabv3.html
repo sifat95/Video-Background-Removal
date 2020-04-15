@@ -5,6 +5,7 @@
     <link rel="stylesheet" type="text/css" href="styles.css"/>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.0.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/deeplab"></script>
+
   </head>
 
   <body>
@@ -21,7 +22,7 @@
         
         const canvasOut = document.getElementById('canvasOut')
         const contextOut = canvasOut.getContext('2d')
-
+      
         const modelName = 'pascal';   // set to your preferred model, either `pascal`, `cityscapes` or `ade20k`
         const quantizationBytes = 2;
         const model = await deeplab.load({base: modelName, quantizationBytes})
@@ -33,10 +34,12 @@
         })
 
         video.srcObject = stream
+        
         predict()
 
         async function predict() {
           context.drawImage(video, 0, 0, 513, 289)
+
           const base = 'pascal'
           const rawSegmentationMap = await model.predict(canvas)
           const {legend, height, width, segmentationMap} = await model.segment(canvas)
@@ -54,12 +57,16 @@
                 pixel[p+3] = 0
             }
           }
+          
+          contextOut.globalAlpha = 1
+          contextOut.imageSmoothingQuality = 'high'
           contextOut.imageSmoothingEnabled = true
           contextOut.putImageData(imageData, 0, 0)
           // contextOut.putImageData(myImageData, 0, 0);
-
+          
           requestAnimationFrame(predict)
         }
+        // capturer.save();
 
       })()
 

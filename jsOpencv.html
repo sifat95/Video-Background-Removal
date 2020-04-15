@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8"/>
+    <link rel="stylesheet" type="text/css" href="styles.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.0.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/deeplab"></script>
+    <script src="opencv.js"></script>
+  </head>
+
+  <body>
+    <video id="video" width="513" height="289" autoplay muted playsinline></video>
+    <canvas id="canvas" width="513" height="289" style="display: none;"></canvas>
+    <div id="background-container">
+      <canvas id="canvasOut" width="513" height="289"></canvas>
+    </div>
+    <image id="image" src="media/bg_office.jpg" style="display: none;"></image>
+    <script>
+      (async () => {
+        const video = document.getElementById('video')
+        const canvas = document.getElementById('canvas')
+        const context = canvas.getContext('2d')
+        
+        const canvasOut = document.getElementById('canvasOut')
+        const contextOut = canvasOut.getContext('2d')
+      
+        const modelName = 'pascal';   // set to your preferred model, either `pascal`, `cityscapes` or `ade20k`
+        const quantizationBytes = 2;
+        const model = await deeplab.load({base: modelName, quantizationBytes})
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: 'user'
+          }
+        })
+
+        video.srcObject = stream
+        
+        predict()
+
+        async function predict() {
+          context.drawImage(video, 0, 0, 513, 289)
+          let background = new cv.Mat();
+          const base = 'pascal'
+          const rawSegmentationMap = await model.predict(canvas)
+          const {legend, height, width, segmentationMap} = await model.segment(canvas)
+          
+          // const segmentationMap = deeplab.toSegmentationImage(deeplab.getColormap(base), deeplab.getLabels(base), rawSegmentationMap)
+          
+          var segmentationData = new ImageData(segmentationMap, width, height);
+          contextOut.drawImage(canvas, 0, 0, canvas.width, canvas.height)
+          var imageData = contextOut.getImageData(0,0, canvas.width, canvas.height)
+          let alpha = cv.matFromImageData(imageData)
+          let foreground = cv.matFromImageData(segmentationData)
+          cv.threshold(alpha, alpha, 0, 255, cv.THRESH_BINARY)
+          let ksize = new cv.Size(3, 3);
+          // You can try more different parameters
+          cv.GaussianBlur(alpha, alpha, ksize, 0, 0, cv.BORDER_DEFAULT)
+          cv.cvtColor(foreground, foreground, cv.COLOR_BGR2RGB)
+          background = cv.imread('image')
+          let mask = new cv.Mat()
+          let outImage = new cv.Mat()
+          alpha.convertTo(alpha, cv.CV_8U, 1, 0)
+          foreground.convertTo(foreground, cv.CV_8U, 1, 0)
+          background.convertTo(background, cv.CV_8U, 1, 0)
+          mask.convertTo(mask, cv.CV_8U, 1, 0)
+          cv.multiply(alpha, foreground, foreground, mask)  
+  
+          
+          cv.multiply(1.0 - alpha, background, background, mask)  
+          
+          cv.add(foreground, background, outImage, -1, mask)
+          outImage.convertTo(outImage, cv.CV_8U, 1, 0)
+          var pixel = imageData.data
+          var data = segmentationData.data
+          for (var p = 0; p<pixel.length; p+=4)
+          {
+            if (data[p] == 0) {
+                pixel[p+3] = 0
+            }
+          }
+          contextOut.imageSmoothingEnabled = true
+          contextOut.putImageData(imageData, 0, 0)
+          // contextOut.putImageData(myImageData, 0, 0);
+
+          requestAnimationFrame(predict)
+        }
+        // capturer.save();
+
+      })()
+
+    </script>
+</body>
+ 
+</html>

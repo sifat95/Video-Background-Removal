@@ -36,12 +36,13 @@
          })
  
          video.srcObject = stream
+
          predict()
  
          async function predict() {
            
             context.drawImage(video, 0, 0, video.width, video.height)
-           
+            
             const segmentation = await model.segmentPerson(canvas)
             const maskBackground = true
             // Convert the segmentation into a mask to darken the background.

@@ -2,6 +2,9 @@
 1. Green Screen Background removal: 
 * greenScreenRemoval.py uses color thresholding
 
+# Demo
+![](media/original.gif) ![](media/new.gif)
+
 2. Chroma Keying: green screen effect javascript
 * chromaKeyingGreen.html, processor.js on media/original.mp4
 * For realtime, use chormaKeying.html -> change r, g, b range for used background color.
@@ -14,3 +17,6 @@
 4. Tensorflow.js deeplab model for semantic segmentation
 * pretrained model on 'pascal' dataset 
 * ref- https://github.com/tensorflow/tfjs-models/tree/master/deeplab
+
+# Demo
+![](media/deeplab.gif)
