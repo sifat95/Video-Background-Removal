@@ -38,11 +38,13 @@
           const frame = contextOut.getImageData(0, 0, canvas.width, canvas.height)
           const l = frame.data.length / 4;
           for (var i = 0; i < l; i++) {
-            const r = frame.data[i * 4 + 0];
-            const g = frame.data[i * 4 + 1];
-            const b = frame.data[i * 4 + 2];
-            if (g > 35 && r <60 && b < 195)
-                frame.data[i * 4 + 3] = 0;
+            const r = frame.data[i * 4 + 0] - frame.data[0]
+            const g = frame.data[i * 4 + 1]- frame.data[1]
+            const b = frame.data[i * 4 + 2]- frame.data[2]
+            
+            if (r<10 && g <5 && b<10)
+                frame.data[i * 4 + 3] = 0
+               
           }
           contextOut.putImageData(frame, 0, 0)
 

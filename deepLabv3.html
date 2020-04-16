@@ -5,7 +5,7 @@
     <link rel="stylesheet" type="text/css" href="styles.css"/>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.0.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/deeplab"></script>
-
+    <script async src="opencv.js"></script>
   </head>
 
   <body>
@@ -63,7 +63,25 @@
           contextOut.imageSmoothingEnabled = true
           contextOut.putImageData(imageData, 0, 0)
           // contextOut.putImageData(myImageData, 0, 0);
-          
+          const c = document.getElementById('canvasOut')
+          let image = cv.imread(c)
+          let dilate = new cv.Mat()
+          let erode = new cv.Mat()
+          let src = new cv.Mat()
+          let M = cv.Mat.ones(3, 3, cv.CV_8U)
+          let anchor = new cv.Point(-1, -1)
+          // cv.cvtColor(image, image, cv.COLOR_RGBA2GRAY)
+          cv.erode(image, erode, M, anchor, 1, cv.BORDER_CONSTANT, cv.morphologyDefaultBorderValue())
+          cv.dilate(image, dilate, M, anchor, 1, cv.BORDER_CONSTANT, cv.morphologyDefaultBorderValue())
+          // cv.dilate(dilate, dilate, M, anchor, 1, cv.BORDER_CONSTANT, cv.morphologyDefaultBorderValue())
+          let mask = new cv.Mat()
+          let dtype = -1
+          cv.subtract(dilate, erode, src, mask, dtype)
+
+          cv.subtract(image, src, image, mask, dtype)
+
+          // cv.threshold(image, image, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU)
+          cv.imshow(c, image)
           requestAnimationFrame(predict)
         }
         // capturer.save();
